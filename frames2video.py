@@ -1,30 +1,32 @@
 import cv2
 import os
-from moviepy.editor import VideoFileClip, AudioFileClip
+from moviepy import ImageSequenceClip, AudioFileClip
+from tqdm import tqdm
 
 
-frame_width = 1440
-frame_height = 1080
-fps = 30
+def make_video(frames_folder: str = "./wframes", 
+               output_video_path: str = 'badapple_edition.mp4',
+               fps: int = 30,
+               audio_path: str | None = None
+               ): 
+    video_clip = ImageSequenceClip(frames_folder, fps=fps)
+    if audio_path is not None:
+        audio_clip = AudioFileClip(audio_path)
+        if video_clip.duration > audio_clip.duration:
+            video_clip = video_clip.subclipped(0, audio_clip.duration)
+        else:
+            audio_clip = audio_clip.subclipped(0, video_clip.duration)
 
-output_video_path = 'badapple_edition.mp4'
-frames_folder = os.path.dirname(os.path.dirname(__file__)) + "/badapple/wframes"
+        video_clip = video_clip.with_audio(audio_clip)
 
-out = cv2.VideoWriter(output_video_path, cv2.VideoWriter.fourcc(*'mp4v'), 
-                      fps, (frame_width, frame_height))
+    video_clip.write_videofile(
+        output_video_path,
+        codec='libx264', 
+        audio_codec='aac', 
+        temp_audiofile='temp-audio.m4a',
+        remove_temp=True
+    )
 
-for frame_name in os.listdir(frames_folder):  # sorted(os.listdir(frames_folder), key=lambda x: int(x.split('_')[1][:-4])):
-    frame_path = os.path.join(frames_folder, frame_name)
-    frame = cv2.imread(frame_path)
-    out.write(frame)
-    # print(i)
 
-out.release()
-cv2.destroyAllWindows()
-
-print('adding audio')
-video = VideoFileClip("badapple_edition.mp4")
-audio = AudioFileClip("【東方】Bad Apple!! ＰＶ【影絵】 (256  kbps).mp3")
-
-video = video.set_audio(audio)
-video.write_videofile("sound_output.mp4", codec="libx264")
+if __name__ == "__main__":
+    make_video('./wframes', audio_path="【東方】Bad Apple!! ＰＶ【影絵】 (256  kbps).mp3")
